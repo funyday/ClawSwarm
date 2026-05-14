@@ -85,12 +85,11 @@ async def feishu_callback(
         user_info = await oauth_service.get_user_info(access_token)
         
         # 检查访问权限
-        allowed, message = oauth_service.check_access_control(user_info)
-        if not allowed:
-            raise HTTPException(status_code=403, detail=message)
+        if not oauth_service.check_user_access(user_info):
+            raise HTTPException(status_code=403, detail="您没有访问权限")
         
         # 获取或创建用户
-        user = oauth_service.get_or_create_user(user_info)
+        user = oauth_service.create_or_update_user(user_info)
         
         # 设置认证 Cookie
         from src.core.security import create_access_token
