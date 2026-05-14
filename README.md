@@ -1,81 +1,55 @@
 # ClawSwarm
 
-[中文(简体)](./README.zh-CN.md) | [English](./README.md)
+开源的多 Agent 编排系统，将群体智能引入 OpenClaw 中的 Agent。
 
-## Overview
+## 快速开始
 
-ClawSwarm is an open-source orchestration system that brings the power of Swarm Intelligence to your agents in OpenClaw. It breaks the "one-on-one" limitation of traditional AI interactions by allowing multiple specialized agents to join a unified group chat.
-
-In ClawSwarm, agents don't just talk to you, they talk to each other. Whether it's a developer, a designer, and a tester debating a software architecture, or a group of researchers synthesizing complex data, ClawSwarm provides the collaboration group for collective brainstorming and automated task execution.
-
-## Architecture
-```sh
-       +------------------------------------------+
-       | http://clawswarm                         |
-       +------------------------------------------+
-       | group1                    Hello everyone |
-       +--------- agent1: Hi                      |
-       | group2 | agent2: Hello                   |
-       | agent1 |                                 |
-       | agent2 |                                 |
-       | agent..|                                 |
-       |        |                                 |
-       +---------------------+--------------------+
-                             |
-                             v
-                 +-----------+-----------+
-                 |   ClawSwarm Server    |
-                 +-----------+-----------+
-                             ^
-                             |
-              +-------->-----+-----<--------+
-              |                             |
-           channel                      channel
-              |                             |
-              |                             |
-     +--------+---------+           +---------+--------+
-     | ClawSwarm plugin |           | ClawSwarm plugin |
-     |                  |           |                  |
-     |     OpenClaw     |           |     OpenClaw     |
-     +------------------+           +------------------+
-```
-
-## Quick start
-
-Execute the command below to start a ClawSwarm container with Docker:
+### Docker 部署（推荐）
 
 ```bash
-docker run -d --name=clawswarm --restart=always -p 18080:18080 -v ~/.claw-team:/opt/clawswarm 1panel/clawswarm:latest
+# 1. 克隆代码
+git clone https://github.com/your/clawswarm.git
+cd clawswarm
+
+# 2. 配置环境变量
+cp .env.example .env
+vim .env  # 编辑必要的配置
+
+# 3. 部署
+bash scripts/deploy.sh
+
+# 4. 访问
+# 打开浏览器访问 http://localhost
 ```
 
-After the container starts, access the ClawSwarm web interface at:
+### 配置说明
 
-- `http://your_server_ip:18080`
+编辑 `.env` 文件：
 
-Use the default admin account to sign in:
+```bash
+# 数据库密码
+DB_PASSWORD=your_secure_password
 
-- username: `admin`
-- password: `admin123456`
+# 应用 URL（用于飞书回调等）
+CLAWSWARM_BASE_URL=https://your-domain.com
 
-After ClawSwarm is running, continue by installing the OpenClaw plugin and completing the integration setup:
+# 加密密钥（生产环境必须修改）
+SECRET_KEY=change-me-to-random-key
+```
 
-- [OpenClaw Plugin Human Installation Guide](./channel/docs/human-install.en.md)
-- [OpenClaw Plugin Agent Installation Guide](./channel/docs/agent-install.en.md)
+## 功能特性
 
-## Core modules
-- `scheduler-server`: backend service for instances, conversations, messages, and scheduling APIs
-- `web-client`: web UI for configuring OpenClaw instances and viewing conversation messages
-- `channel`: the `clawswarm` channel plugin published for OpenClaw
+- 多 Agent 群聊编排
+- 飞书 Bot 接入
+- 飞书 SSO 登录
+- Headscale/Tailscale 网络支持
 
-This repository also includes container build files and local development assets, making it suitable for image releases, integration testing, and plugin publishing.
+## 文档
 
-## Technical stack
+- [项目规范](./AGENTS.md)
+- [飞书配置](./docs/feishu-setup.md) (待完成)
+- [网络配置](./docs/network-setup.md) (待完成)
 
-- Backend: Python 3.10+, FastAPI, SQLAlchemy, Uvicorn
-- Frontend: Vue 3, Vite, TypeScript, Element Plus, Pinia, Vue Router, Vue I18n
-- Plugin: TypeScript, tsup, Vitest, Zod, Undici
-- Runtime: Docker, Docker Compose
+## 许可证
 
-## License
-
-This project is licensed under the GPL-3.0 License. See [LICENSE](./LICENSE) for details.
+MIT

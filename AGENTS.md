@@ -88,3 +88,72 @@ bash scripts/coze-preview-run.sh
 1. **API 代理错误**: 前端访问 `/api/*` 会代理到 `127.0.0.1:18080`，后端未启动时会出现 `ECONNREFUSED`，这是预期行为
 2. **依赖安装**: 确保先执行 build 脚本安装依赖，再启动预览
 3. **端口冲突**: run 脚本使用幂等设计，会自动清理旧进程
+
+## Docker 部署
+
+### 目录结构
+
+```
+/workspace/projects/              # 工作区根目录 & 技术项目根目录
+├── .env                         # 环境变量配置
+├── .env.example                 # 环境变量模板
+├── Dockerfile                   # 后端构建文件
+├── docker-compose.yml           # Docker Compose 配置
+├── nginx.conf                   # Nginx 配置
+├── init-scripts/                # 数据库初始化脚本
+├── ssl/                         # SSL 证书目录
+└── scripts/
+    ├── deploy.sh               # 部署脚本
+    ├── stop.sh                 # 停止脚本
+    └── logs.sh                 # 日志查看脚本
+```
+
+### Docker 部署步骤
+
+```bash
+# 1. 克隆代码
+git clone https://github.com/your/clawswarm.git
+cd clawswarm
+
+# 2. 复制并编辑环境变量
+cp .env.example .env
+vim .env
+
+# 3. 一键部署
+bash scripts/deploy.sh
+
+# 4. 查看服务状态
+docker compose ps
+
+# 5. 查看日志
+bash scripts/logs.sh -f
+```
+
+### Docker 环境变量
+
+| 变量名 | 必填 | 说明 |
+|--------|------|------|
+| `DB_PASSWORD` | 是 | PostgreSQL 数据库密码 |
+| `CLAWSWARM_BASE_URL` | 是 | 应用基础 URL（用于飞书回调） |
+| `SECRET_KEY` | 是 | 加密密钥（生产环境必须修改） |
+| `HEADSCALE_URL` | 否 | Headscale 服务器地址 |
+| `HEADSCALE_API_KEY` | 否 | Headscale API Key |
+| `TAILSCALE_AUTH_KEY` | 否 | Tailscale 认证密钥 |
+| `FEISHU_APP_ID` | 否 | 飞书应用 App ID |
+| `FEISHU_APP_SECRET` | 否 | 飞书应用 App Secret |
+
+### Tailscale 容器配置
+
+1. 在 `docker-compose.yml` 中取消注释 tailscale 服务
+2. 从 Tailscale 控制台获取认证密钥
+3. 在 `.env` 中设置 `TAILSCALE_AUTH_KEY`
+4. 重新部署
+
+### 服务端口
+
+| 端口 | 服务 | 说明 |
+|------|------|------|
+| 80 | Nginx | HTTP 访问 |
+| 443 | Nginx | HTTPS 访问（需配置证书） |
+| 5432 | PostgreSQL | 数据库（仅容器内访问） |
+| 18080 | Backend | API 服务（仅容器内访问） |

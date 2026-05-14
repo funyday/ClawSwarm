@@ -24,8 +24,9 @@ def load_env_file(path: Path) -> None:
 def main() -> None:
     root = Path(__file__).resolve().parent
     load_env_file(root / ".env.dev")
-    host = os.getenv("APP_HOST", "127.0.0.1")
-    port = int(os.getenv("APP_PORT", "8080"))
+    # Docker 环境使用 0.0.0.0，本地开发使用 127.0.0.1
+    host = os.getenv("APP_HOST", "0.0.0.0")
+    port = int(os.getenv("APP_PORT", "18080"))
     uvicorn.run("src.main:app", host=host, port=port, reload=False)
 
 

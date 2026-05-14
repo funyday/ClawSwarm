@@ -1,43 +1,35 @@
-ARG BASE_IMAGE=ghcr.io/1panel-dev/clawswarm-base:latest
+# ClawSwarm Backend Dockerfile
+FROM python:3.10-slim
 
-FROM node:22-bookworm-slim AS web-build
+# 设置工作目录
+WORKDIR /app
 
-COPY web-client /web-client
-WORKDIR /web-client
+# 安装系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN if [ -d "dist" ]; then exit 0; fi \
-    && npm ci \
-    && npm run build
+# 复制依赖文件
+COPY scheduler-server/requirements.txt .
 
+# 安装 Python 依赖
+RUN pip install --no-cache-dir -r requirements.txt
 
-FROM ${BASE_IMAGE} AS stage-build
+# 复制后端代码
+COPY scheduler-server/src ./src
 
-WORKDIR /opt/clawswarm-build
+# 复制启动脚本
+COPY scheduler-server/run.py .
+COPY scheduler-server/run_dev.py .
 
-COPY scheduler-server/run_dev.py ./scheduler-server/run_dev.py
-COPY scheduler-server/src ./scheduler-server/src
-COPY --from=web-build /web-client/dist ./web
+# 创建必要的目录
+RUN mkdir -p /app/logs
 
-
-FROM ${BASE_IMAGE}
-
-ARG DOCKER_IMAGE_TAG=dev
-ARG BUILD_AT
-ARG GITHUB_COMMIT
-
-ENV CLAWSWARM_VERSION="${DOCKER_IMAGE_TAG} (build at ${BUILD_AT}, commit: ${GITHUB_COMMIT})" \
-    APP_HOST=0.0.0.0 \
-    APP_PORT=18080 \
-    WEB_DIST_DIR=/opt/clawswarm-web
-
-WORKDIR /app/scheduler-server
-
-COPY --from=stage-build /opt/clawswarm-build/scheduler-server /app/scheduler-server
-COPY --from=stage-build /opt/clawswarm-build/web /opt/clawswarm-web
-
-RUN mkdir -p /opt/clawswarm
-
+# 暴露端口
 EXPOSE 18080
-VOLUME ["/opt/clawswarm"]
 
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "18080"]
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1
+
+# 启动命令
+CMD ["python", "run_dev.py"]
