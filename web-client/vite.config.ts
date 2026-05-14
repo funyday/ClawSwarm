@@ -68,5 +68,24 @@ export default defineConfig(({ mode }) => {
             },
         },
     },
+    preview: {
+        host: "0.0.0.0",
+        port: 5000,
+        proxy: {
+            "/api": {
+                target: devProxyTarget,
+                changeOrigin: true,
+            },
+            "/ws": {
+                target: devProxyTarget,
+                changeOrigin: true,
+                ws: true,
+            },
+            "/auth": {
+                target: devProxyTarget,
+                changeOrigin: true,
+            },
+        },
+    },
     };
 });
