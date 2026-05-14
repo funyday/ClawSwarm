@@ -1,6 +1,6 @@
 """飞书 SSO 认证路由。"""
 
-from fastapi import APIRouter, Depends, HTTPException, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, Response, Request, Header
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 import httpx
@@ -91,24 +91,15 @@ async def feishu_callback(
         # 获取或创建用户
         user = oauth_service.create_or_update_user(user_info)
         
-        # 设置认证 Cookie
+        # 创建访问 token
         from src.core.security import create_access_token
         
         access_token_jwt = create_access_token(user.id)
-        cookie_name = settings.auth_cookie_name or "clawswarm_token"
-        response.set_cookie(
-            key=cookie_name,
-            value=access_token_jwt,
-            httponly=True,
-            secure=False,  # 本地开发使用非安全 cookie
-            samesite="lax",
-            max_age=7 * 24 * 60 * 60,  # 7 天
-        )
         
-        # 返回重定向到前端页面，带上成功标识
-        # 前端运行在 5000 端口，需要重定向到前端页面
+        # 返回重定向到前端页面，带上 token
+        # 前端会读取 token 并初始化登录状态
         frontend_base = settings.clawswarm_base_url.rstrip("/")
-        redirect_url = f"{frontend_base}/?login_success=1&user_id={user.id}"
+        redirect_url = f"{frontend_base}/?login_token={access_token_jwt}"
         return RedirectResponse(url=redirect_url, status_code=302)
         
     except ValueError as e:
@@ -132,6 +123,7 @@ async def logout(
 async def get_current_user(
     request: Request,
     db: Session = Depends(get_db),
+    authorization: str | None = Header(None),
 ):
     """
     获取当前用户信息
@@ -140,9 +132,11 @@ async def get_current_user(
     from src.models.app_user import AppUser
     
     try:
-        user = await get_current_user(request, db)
+        user = await get_current_user(request, db, authorization)
         if not user:
             raise HTTPException(status_code=401, detail="未登录")
         return AppUserResponse.model_validate(user)
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=401, detail="未登录")

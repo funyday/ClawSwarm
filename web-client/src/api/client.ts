@@ -6,10 +6,26 @@
 import axios from "axios";
 import { resolveApiBaseUrl } from "@/api/baseUrl";
 
+const FEISHU_TOKEN_KEY = "clawswarm_feishu_token";
+
+function getFeishuToken(): string | null {
+    if (typeof localStorage === "undefined") return null;
+    return localStorage.getItem(FEISHU_TOKEN_KEY);
+}
+
 export const apiClient = axios.create({
     baseURL: resolveApiBaseUrl(),
     timeout: 10000,
     withCredentials: true,
+});
+
+// 添加 Authorization 头（用于飞书 SSO 登录）
+apiClient.interceptors.request.use((config) => {
+    const token = getFeishuToken();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
 });
 
 apiClient.interceptors.response.use(
