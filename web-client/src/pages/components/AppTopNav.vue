@@ -86,6 +86,7 @@ const navItems = [
   {labelKey: "nav.messages", to: "/messages"},
   // {labelKey: "nav.projects", to: "/projects"},
   {labelKey: "nav.openclaw", to: "/openclaws"},
+  {labelKey: "nav.feishu", to: "/feishu"},
 ];
 
 function handleLocaleChange(value: string | number | boolean) {

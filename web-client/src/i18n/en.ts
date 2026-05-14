@@ -3,6 +3,7 @@ export const en = {
     messages: "Messages",
     projects: "Projects",
     openclaw: "Agents",
+    feishu: "Feishu Integration",
     tasks: "Tasks",
     settings: "Settings",
     language: "Language",

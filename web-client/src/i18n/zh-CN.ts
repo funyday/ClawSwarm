@@ -3,6 +3,7 @@ export const zhCN = {
     messages: "消息",
     projects: "项目",
     openclaw: "Agent",
+    feishu: "飞书集成",
     tasks: "任务",
     settings: "设置",
     language: "语言",
