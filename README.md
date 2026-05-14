@@ -1,5 +1,7 @@
 # ClawSwarm
 
+> 本项目基于 [@1Panel-dev](https://github.com/1Panel-dev) 的 [OpenClaw](https://github.com/1Panel-dev/OpenClaw) 进行二次开发，添加了群体智能编排、飞书集成、私有网络支持等功能。
+
 开源的多 Agent 编排系统，将群体智能引入 OpenClaw 中的 Agent。它打破了传统 AI 交互的"一对一"限制，允许多个专业 Agent 加入统一的群聊。
 
 ## 功能特性
