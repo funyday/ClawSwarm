@@ -7,7 +7,7 @@
 3. 作为群成员和 dispatch 的路由目标。
 """
 from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.db import Base
 from src.models.base_mixins import TimestampMixin
@@ -30,3 +30,10 @@ class AgentProfile(Base, TimestampMixin):
     # 远端 OpenClaw 已不再返回这个 Agent 时，只做软移除，保留历史会话和 CS ID。
     removed_from_openclaw: Mapped[bool] = mapped_column(Boolean, default=False)
     created_via_clawswarm: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    # 关系
+    feishu_bots: Mapped[list["FeishuBot"]] = relationship(
+        "FeishuBot",
+        back_populates="agent",
+        cascade="all, delete-orphan"
+    )

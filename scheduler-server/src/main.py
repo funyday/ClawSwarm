@@ -15,6 +15,10 @@ from src.api.routes import (
     auth,
     callbacks,
     conversations,
+    feishu_auth,
+    feishu_bots,
+    feishu_groups,
+    admin_feishu_auth,
     groups,
     health,
     hermes,
@@ -88,7 +92,11 @@ def create_app() -> FastAPI:
         path = request.url.path
         if not path.startswith("/api"):
             return await call_next(request)
-        if path == "/api/health" or path.startswith("/api/auth") or path.startswith("/api/v1/clawswarm/"):
+        # 认证相关的端点不需要登录
+        if (path == "/api/health" 
+            or path.startswith("/api/auth/")
+            or path.startswith("/api/v1/clawswarm/")
+            or path.startswith("/api/feishu/")):
             return await call_next(request)
 
         with request.app.state.session_local() as db:
@@ -100,6 +108,10 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(feishu_auth.router)
+    app.include_router(feishu_bots.router)
+    app.include_router(feishu_groups.router)
+    app.include_router(admin_feishu_auth.router)
     app.include_router(hermes.router)
     app.include_router(instances.router)
     app.include_router(agents.router)

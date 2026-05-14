@@ -1,0 +1,66 @@
+# ClawSwarm Docker Compose 配置示例
+# 包含 Tailscale 网络集成
+
+version: "3.8"
+
+services:
+  clawswarm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clawswarm
+    ports:
+      - "18080:8080"  # API
+      - "5000:5000"   # Web UI
+    environment:
+      # 数据库配置 (使用 Coze PostgreSQL)
+      DATABASE_URL: postgresql://postgres:${COZE_DB_PASSWORD}@${COZE_DB_HOST}:5432/postgres?sslmode=require&channel_binding=require
+      
+      # 应用配置
+      APP_ENV: production
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8080
+      
+      # 认证配置
+      AUTH_SECRET: ${AUTH_SECRET}
+      
+      # 飞书 SSO 配置
+      FEISHU_SSO_ENABLED: "true"
+      FEISHU_SSO_APP_ID: ${FEISHU_SSO_APP_ID}
+      FEISHU_SSO_APP_SECRET: ${FEISHU_SSO_APP_SECRET}
+      FEISHU_SSO_REDIRECT_URI: ${FEISHU_SSO_REDIRECT_URI}
+      
+      # Tailscale 配置
+      TAILSCALE_ENABLED: "true"
+      TAILSCALE_AUTHKEY: ${TAILSCALE_AUTHKEY}
+      TAILSCALE_HOSTNAME: clawswarm-server
+      
+      # ClawSwarm 回调 URL (飞书需要公网可访问)
+      CLAWSWARM_BASE_URL: https://clawswarm.example.com
+    volumes:
+      - ./data:/opt/clawswarm
+      - /dev/net/tun:/dev/net/tun  # Tailscale 必需
+    cap_add:
+      - NET_ADMIN  # Tailscale 必需
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 可选: PostgreSQL (如果不用 Coze 数据库)
+  # postgres:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: clawswarm
+  #     POSTGRES_USER: clawswarm
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   postgres_data:

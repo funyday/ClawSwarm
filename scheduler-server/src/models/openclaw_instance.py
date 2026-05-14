@@ -10,7 +10,7 @@
 from uuid import uuid4
 
 from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.db import Base
 from src.models.base_mixins import TimestampMixin
@@ -32,3 +32,10 @@ class OpenClawInstance(Base, TimestampMixin):
     # channel -> scheduler-server 回调时使用的 Bearer Token。
     callback_token: Mapped[str] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(32), default="active")
+    
+    # 关系
+    feishu_bots: Mapped[list["FeishuBot"]] = relationship(
+        "FeishuBot",
+        back_populates="instance",
+        cascade="all, delete-orphan"
+    )

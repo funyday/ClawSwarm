@@ -15,6 +15,7 @@ const ProjectsPage = () => import("@/pages/projects/ProjectsPage.vue");
 const ProjectDetailPage = () => import("@/pages/projects/ProjectDetailPage.vue");
 const TasksPage = () => import("@/pages/tasks/TasksPage.vue");
 const SettingsPage = () => import("@/pages/settings/SettingsPage.vue");
+const FeishuIntegrationPage = () => import("@/pages/feishu/FeishuIntegrationPage.vue");
 
 export const router = createRouter({
     history: createWebHistory(),
@@ -61,6 +62,10 @@ export const router = createRouter({
                 {
                     path: "settings",
                     component: SettingsPage,
+                },
+                {
+                    path: "feishu",
+                    component: FeishuIntegrationPage,
                 },
             ],
         },

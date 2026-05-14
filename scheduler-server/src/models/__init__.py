@@ -6,6 +6,11 @@ from src.models.app_user import AppUser
 from src.models.chat_group import ChatGroup
 from src.models.chat_group_member import ChatGroupMember
 from src.models.conversation import Conversation
+from src.models.feishu_bot import FeishuBot
+from src.models.feishu_group import FeishuGroup
+from src.models.feishu_group_bot import FeishuGroupBot
+from src.models.feishu_message_log import FeishuMessageLog
+from src.models.feishu_sso_config import FeishuSSOConfig
 from src.models.hermes_conversation_state import HermesConversationState
 from src.models.hermes_instance import HermesInstance
 from src.models.message import Message
@@ -25,6 +30,11 @@ __all__ = [
     "ChatGroup",
     "ChatGroupMember",
     "Conversation",
+    "FeishuBot",
+    "FeishuGroup",
+    "FeishuGroupBot",
+    "FeishuMessageLog",
+    "FeishuSSOConfig",
     "HermesConversationState",
     "HermesInstance",
     "Message",

@@ -1,1 +1,42 @@
 """API 路由包，集中暴露各业务模块的 HTTP 入口。"""
+
+from src.api.routes import (
+    address_book,
+    agent_dialogues,
+    agents,
+    auth,
+    callbacks,
+    conversations,
+    feishu_auth,
+    feishu_bots,
+    feishu_groups,
+    feishu_webhook,
+    admin_feishu_auth,
+    groups,
+    health,
+    hermes,
+    instances,
+    projects,
+    runtime_targets,
+    ws,
+)
+
+__all__ = [
+    "address_book",
+    "agent_dialogues",
+    "agents",
+    "auth",
+    "callbacks",
+    "conversations",
+    "feishu_auth",
+    "feishu_bots",
+    "feishu_groups",
+    "admin_feishu_auth",
+    "groups",
+    "health",
+    "hermes",
+    "instances",
+    "projects",
+    "runtime_targets",
+    "ws",
+]
