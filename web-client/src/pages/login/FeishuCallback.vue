@@ -1,91 +1,98 @@
 <template>
-  <div class="callback-page">
-    <div class="callback-card">
-      <el-icon class="loading-icon" size="32"><Loading /></el-icon>
-      <p>{{ t("feishu.processingLogin") }}</p>
+  <div class="callback-container">
+    <div class="callback-content">
+      <h2>正在处理登录...</h2>
+      <p>{{ statusMessage }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
-import { Loading } from "@element-plus/icons-vue";
-import { useI18n } from "@/composables/useI18n";
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter();
-const { t } = useI18n();
+const router = useRouter()
+const authStore = useAuthStore()
+const statusMessage = ref('正在验证飞书授权...')
 
 onMounted(async () => {
   try {
-    // 从 URL 获取查询参数
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-    const state = urlParams.get("state");
+    // 从 URL 获取 code 和 state
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const state = urlParams.get('state')
+    const error = urlParams.get('error')
 
-    if (!code) {
-      ElMessage.error(t("feishu.callbackError"));
-      router.push("/login");
-      return;
+    if (error) {
+      statusMessage.value = `授权失败: ${error}`
+      setTimeout(() => router.push('/login'), 2000)
+      return
     }
 
-    // 调用后端回调接口
-    const response = await fetch(`/auth/feishu/callback?code=${code}&state=${state}`, {
-      method: "GET",
-      credentials: "include",
-    });
+    if (!code || !state) {
+      statusMessage.value = '缺少授权参数'
+      setTimeout(() => router.push('/login'), 2000)
+      return
+    }
 
-    if (response.ok) {
-      const data = await response.json();
-      // 保存用户信息到 localStorage
-      if (data.user) {
-        localStorage.setItem("clawswarm_user", JSON.stringify(data.user));
-      }
-      // 跳转到首页
-      router.push("/");
+    statusMessage.value = '正在完成登录...'
+
+    // 调用后端完成登录
+    const response = await fetch('/auth/feishu/callback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ code, state })
+    })
+
+    const data = await response.json()
+
+    if (data.success && data.user) {
+      // 保存用户信息到 store (直接设置 state)
+      authStore.$patch({ user: data.user, initialized: true })
+      statusMessage.value = '登录成功，正在跳转...'
+      
+      // 延迟跳转，让用户看到成功消息
+      setTimeout(() => {
+        router.push(data.redirect_url || '/')
+      }, 500)
     } else {
-      const error = await response.json().catch(() => ({ detail: "Login failed" }));
-      ElMessage.error(error.detail || t("feishu.callbackError"));
-      router.push("/login");
+      statusMessage.value = data.message || '登录失败'
+      setTimeout(() => router.push('/login'), 2000)
     }
   } catch (error) {
-    console.error("OAuth callback error:", error);
-    ElMessage.error(t("feishu.callbackError"));
-    router.push("/login");
+    console.error('登录处理失败:', error)
+    statusMessage.value = '登录处理失败，请重试'
+    setTimeout(() => router.push('/login'), 2000)
   }
-});
+})
 </script>
 
 <style scoped>
-.callback-page {
+.callback-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #f8f4f4;
+  background-color: var(--el-bg-color-page);
 }
 
-.callback-card {
+.callback-content {
   text-align: center;
   padding: 40px;
-  background: white;
+  background: var(--el-bg-color);
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.loading-icon {
-  animation: rotate 1s linear infinite;
-  color: #409eff;
+.callback-content h2 {
   margin-bottom: 16px;
+  color: var(--el-text-color-primary);
 }
 
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.callback-content p {
+  color: var(--el-text-color-secondary);
 }
 </style>
