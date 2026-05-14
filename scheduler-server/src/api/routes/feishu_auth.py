@@ -119,6 +119,14 @@ async def logout(
     return {"success": True}
 
 
+import logging
+import sys
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+logger.addHandler(handler)
+
 @router.get("/me")
 async def get_current_user(
     request: Request,
@@ -128,15 +136,19 @@ async def get_current_user(
     """
     获取当前用户信息
     """
+    print(f"[DEBUG] /me called, authorization: {authorization}", flush=True)
+    
     from src.api.deps import get_current_user
     from src.models.app_user import AppUser
     
     try:
         user = await get_current_user(request, db, authorization)
+        print(f"[DEBUG] user from deps: {user}", flush=True)
         if not user:
             raise HTTPException(status_code=401, detail="未登录")
         return AppUserResponse.model_validate(user)
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
+        print(f"[DEBUG] error: {e}", flush=True)
         raise HTTPException(status_code=401, detail="未登录")

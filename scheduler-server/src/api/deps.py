@@ -1,5 +1,6 @@
 """API 依赖定义，集中提供路由层复用的依赖项。"""
 
+import logging
 from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, Header
@@ -9,6 +10,8 @@ from src.core.db import get_db
 from src.core.security import decode_access_token
 from src.core.config import settings
 from src.models.app_user import AppUser
+
+logger = logging.getLogger(__name__)
 
 
 DbSession = Session
@@ -37,16 +40,24 @@ async def get_current_user(
     authorization: Optional[str] = Header(None),
 ) -> Optional[AppUser]:
     """获取当前登录用户"""
+    logger.info(f"get_current_user called, authorization header: {authorization}")
+    
     token = extract_token(request, authorization)
+    logger.info(f"Extracted token: {token[:50] if token else None}...")
     
     if not token:
+        logger.info("No token found")
         return None
     
     user_id = decode_access_token(token)
+    logger.info(f"Decoded user_id: {user_id}")
+    
     if not user_id:
+        logger.info("Token decode failed")
         return None
     
     user = db.query(AppUser).filter(AppUser.id == user_id).first()
+    logger.info(f"Found user: {user.username if user else None}")
     return user
 
 

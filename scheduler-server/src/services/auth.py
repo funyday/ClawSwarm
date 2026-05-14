@@ -129,6 +129,18 @@ def clear_auth_cookie(response: Response) -> None:
 
 
 def get_current_user_from_request(request: Request, db: Session) -> AppUser | None:
+    """从请求中获取当前用户，支持 Cookie 和 Authorization 头"""
+    # 首先尝试从 Authorization 头获取 Bearer token
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]  # 去掉 "Bearer " 前缀
+        user_id = decode_access_token_jwt(token)
+        if user_id:
+            user = db.get(AppUser, user_id)
+            if user:
+                return user
+    
+    # 其次从 Cookie 获取 (使用旧的签名格式)
     raw = request.cookies.get(get_auth_cookie_name(), "").strip()
     if not raw or "." not in raw:
         return None
@@ -140,3 +152,16 @@ def get_current_user_from_request(request: Request, db: Session) -> AppUser | No
     if not hmac.compare_digest(signature, expected):
         return None
     return user
+
+
+def decode_access_token_jwt(token: str) -> str | None:
+    """解码 JWT token，返回 user_id"""
+    try:
+        from jose import jwt, JWTError
+        from src.core.config import settings
+        ALGORITHM = "HS256"
+        payload = jwt.decode(token, settings.auth_secret, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        return user_id
+    except (JWTError, Exception):
+        return None
