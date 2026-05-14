@@ -2,61 +2,48 @@
   <div class="login-page">
     <div class="login-card">
       <img class="login-card__logo" src="/Logo-2.png" alt="ClawSwarm Logo" />
-      <h1 class="login-card__title">{{ t("auth.loginTitle") }}</h1>
+      <h1 class="login-card__title">{{ t("feishu.loginTitle") }}</h1>
+      <p class="login-card__subtitle">{{ t("feishu.loginSubtitle") }}</p>
 
-      <el-form label-position="top" @submit.prevent="handleSubmit">
-        <el-form-item :label="t('auth.username')">
-          <el-input v-model="form.username" autocomplete="username" />
-        </el-form-item>
-        <el-form-item :label="t('auth.password')">
-          <el-input v-model="form.password" type="password" show-password autocomplete="current-password" />
-        </el-form-item>
-        <el-button class="login-card__submit" type="primary" :loading="submitting" @click="handleSubmit">
-          {{ t("auth.login") }}
+      <div class="login-card__sso">
+        <el-button 
+          type="primary" 
+          size="large" 
+          class="feishu-login-btn"
+          :loading="loading"
+          @click="handleFeishuLogin"
+        >
+          <span class="feishu-icon">飞</span>
+          {{ t("feishu.loginWithFeishu") }}
         </el-button>
-      </el-form>
+      </div>
+
+      <p class="login-card__agreement">
+        {{ t("feishu.loginAgreement") }}
+      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
-
+import { ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { ElMessage } from "element-plus";
 import { useI18n } from "@/composables/useI18n";
-import { useAuthStore } from "@/stores/auth";
 
-const authStore = useAuthStore();
-const route = useRoute();
 const router = useRouter();
+const route = useRoute();
 const { t } = useI18n();
-const submitting = ref(false);
-const form = reactive({
-    username: "",
-    password: "",
-});
+const loading = ref(false);
 
-async function handleSubmit() {
-    if (!form.username.trim() || !form.password) {
-        return;
-    }
-    submitting.value = true;
+async function handleFeishuLogin() {
+    loading.value = true;
     try {
-        await authStore.login({
-            username: form.username.trim(),
-            password: form.password,
-        });
-        ElMessage.success(t("auth.loginSuccess"));
-        if (authStore.user?.usingDefaultPassword) {
-            window.localStorage.setItem("clawswarm.open-account-dialog", "1");
-            ElMessage.warning(t("auth.defaultPasswordWarning"));
-        }
-        const redirect = typeof route.query.redirect === "string" && route.query.redirect ? route.query.redirect : "/messages";
-        await router.replace(redirect);
+        // 跳转到后端飞书 OAuth 授权页面
+        window.location.href = "/auth/feishu";
     } catch (error) {
         ElMessage.error(error instanceof Error ? error.message : String(error));
-    } finally {
-        submitting.value = false;
+        loading.value = false;
     }
 }
 </script>
@@ -94,9 +81,49 @@ async function handleSubmit() {
   line-height: 1.2;
 }
 
-.login-card__submit {
-  width: 100%;
-  margin-top: 4px;
+.login-card__subtitle {
+  margin: 0 0 24px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
 }
 
+.login-card__sso {
+  margin-bottom: 20px;
+}
+
+.feishu-login-btn {
+  width: 100%;
+  height: 48px;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #3370ff 0%, #2860e5 100%);
+  border: none;
+}
+
+.feishu-login-btn:hover {
+  background: linear-gradient(135deg, #2860e5 0%, #2356d5 100%);
+}
+
+.feishu-icon {
+  width: 24px;
+  height: 24px;
+  background: white;
+  color: #3370ff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.login-card__agreement {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
 </style>

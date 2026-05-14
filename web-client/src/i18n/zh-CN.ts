@@ -367,6 +367,11 @@ export const zhCN = {
       groups: "群组管理",
       sso: "SSO 设置",
     },
+    // SSO 登录页翻译
+    loginTitle: "欢迎使用 ClawSwarm",
+    loginSubtitle: "使用飞书账号安全登录",
+    loginWithFeishu: "使用飞书登录",
+    loginAgreement: "登录即表示同意《用户协议》和《隐私政策》",
     bot: {
       name: "Bot 名称",
       namePlaceholder: "例如：开发助手 Bot",

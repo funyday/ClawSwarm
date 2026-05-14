@@ -367,6 +367,11 @@ export const en = {
       groups: "Group Management",
       sso: "SSO Settings",
     },
+    // SSO login translations
+    loginTitle: "Welcome to ClawSwarm",
+    loginSubtitle: "Sign in securely with your Feishu account",
+    loginWithFeishu: "Sign in with Feishu",
+    loginAgreement: "By signing in, you agree to the Terms of Service and Privacy Policy",
     bot: {
       name: "Bot Name",
       namePlaceholder: "For example: Dev Assistant Bot",
