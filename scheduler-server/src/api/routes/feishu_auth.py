@@ -100,17 +100,16 @@ async def feishu_callback(
             key=cookie_name,
             value=access_token_jwt,
             httponly=True,
-            secure=True,
+            secure=False,  # 本地开发使用非安全 cookie
             samesite="lax",
             max_age=7 * 24 * 60 * 60,  # 7 天
         )
         
-        # 返回用户信息
-        return LoginResponse(
-            success=True,
-            user=AppUserResponse.model_validate(user),
-            redirect_url=stored_redirect,
-        )
+        # 返回重定向到前端页面，带上成功标识
+        # 前端运行在 5000 端口，需要重定向到前端页面
+        frontend_base = settings.clawswarm_base_url.rstrip("/")
+        redirect_url = f"{frontend_base}/?login_success=1&user_id={user.id}"
+        return RedirectResponse(url=redirect_url, status_code=302)
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

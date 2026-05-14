@@ -50,8 +50,9 @@ onMounted(async () => {
     const data = await response.json()
 
     if (data.success && data.user) {
-      // 保存用户信息到 store (直接设置 state)
-      authStore.$patch({ user: data.user, initialized: true })
+      // 保存用户信息到 store
+      authStore.user = data.user
+      authStore.initialized = true
       statusMessage.value = '登录成功，正在跳转...'
       
       // 延迟跳转，让用户看到成功消息

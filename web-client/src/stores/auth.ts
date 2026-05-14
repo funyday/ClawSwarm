@@ -56,5 +56,10 @@ export const useAuthStore = defineStore("auth", {
             this.initialized = true;
             return user;
         },
+        // 飞书 SSO 登录后设置用户
+        setUser(user: AuthUserOutput) {
+            this.user = user;
+            this.initialized = true;
+        },
     },
 });
