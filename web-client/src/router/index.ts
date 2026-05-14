@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/auth";
 import { pinia } from "@/stores/pinia";
 
 const LoginPage = () => import("@/pages/login/LoginPage.vue");
+const FeishuCallback = () => import("@/pages/login/FeishuCallback.vue");
 const MainLayout = () => import("@/pages/frame/MainLayout.vue");
 const MessagesPage = () => import("@/pages/messages/MessagesPage.vue");
 const OpenClawsPage = () => import("@/pages/openclaws/OpenClawsPage.vue");
@@ -23,6 +24,11 @@ export const router = createRouter({
         {
             path: "/login",
             component: LoginPage,
+            meta: { public: true },
+        },
+        {
+            path: "/auth/feishu/callback",
+            component: FeishuCallback,
             meta: { public: true },
         },
         {
