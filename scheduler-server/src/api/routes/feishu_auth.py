@@ -41,9 +41,13 @@ async def feishu_login(
     state = FeishuOAuthService.generate_state()
     SessionStateManager.store_state(state, redirect_url)
     
-    # 构建回调 URL
-    callback_base = settings.clawswarm_base_url.rstrip("/")
-    callback_uri = f"{callback_base}/auth/feishu/callback"
+    # 从数据库获取回调 URL
+    callback_uri = oauth_service.config.redirect_uri if oauth_service.config else None
+    
+    # 如果数据库没有配置，使用 settings 中的默认值
+    if not callback_uri:
+        callback_base = settings.clawswarm_base_url.rstrip("/")
+        callback_uri = f"{callback_base}/auth/feishu/callback"
     
     # 生成授权 URL
     authorize_url = oauth_service.get_authorize_url(callback_uri, state)
