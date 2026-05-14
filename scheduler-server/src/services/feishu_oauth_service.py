@@ -3,6 +3,7 @@
 import hashlib
 import secrets
 import json
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -14,16 +15,50 @@ from src.models.feishu_sso_config import FeishuSSOConfig
 from src.schemas.feishu import FeishuUserInfo
 
 
+class SessionStateManager:
+    """简单的内存状态管理器（生产环境建议使用 Redis）"""
+    _states: dict = {}
+    
+    @classmethod
+    def store_state(cls, state: str, redirect_url: str, expires_in: int = 600):
+        """存储 state 和对应的重定向 URL"""
+        cls._states[state] = {
+            "redirect_url": redirect_url,
+            "created_at": time.time(),
+            "expires_in": expires_in,
+        }
+    
+    @classmethod
+    def get_and_delete_state(cls, state: str) -> Optional[str]:
+        """获取并删除 state（一次性使用）"""
+        if state not in cls._states:
+            return None
+        
+        stored = cls._states[state]
+        
+        # 检查是否过期
+        if time.time() - stored["created_at"] > stored["expires_in"]:
+            del cls._states[state]
+            return None
+        
+        redirect_url = stored["redirect_url"]
+        del cls._states[state]
+        return redirect_url
+
+
 class FeishuOAuthService:
     """飞书 OAuth 2.0 服务"""
     
     AUTHORIZE_URL = "https://open.feishu.cn/open-apis/authen/v1/authorize"
     TOKEN_URL = "https://open.feishu.cn/open-apis/authen/v1/oidc/access_token"
     USER_INFO_URL = "https://open.feishu.cn/open-apis/authen/v1/user_info"
+    APP_TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal"
     
     def __init__(self, db: Session):
         self.db = db
         self.config = self._get_config()
+        self._app_access_token = None
+        self._app_token_expires_at = None
     
     def _get_config(self) -> Optional[FeishuSSOConfig]:
         """获取 SSO 配置"""
@@ -60,10 +95,39 @@ class FeishuOAuthService:
             return False
         return secrets.compare_digest(state, stored_state)
     
+    async def _get_app_access_token(self) -> str:
+        """获取 app_access_token"""
+        # 检查缓存
+        if self._app_access_token and self._app_token_expires_at:
+            if datetime.utcnow() < self._app_token_expires_at:
+                return self._app_access_token
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                self.APP_TOKEN_URL,
+                json={
+                    "app_id": self.config.app_id,
+                    "app_secret": self.config.app_secret,
+                }
+            )
+            data = response.json()
+            
+            if data.get("code") != 0:
+                raise Exception(f"获取 app_access_token 失败: {data.get('msg')}")
+            
+            self._app_access_token = data["app_access_token"]
+            # 提前 5 分钟过期
+            expires_in = data.get("expire", 7200) - 300
+            self._app_token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+            
+            return self._app_access_token
+    
     async def exchange_code_for_token(self, code: str) -> dict:
         """用授权码换取 access_token"""
         if not self.config:
             raise ValueError("飞书 SSO 未配置")
+        
+        app_token = await self._get_app_access_token()
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
@@ -74,145 +138,99 @@ class FeishuOAuthService:
                 },
                 headers={
                     "Content-Type": "application/json",
-                },
-                params={
-                    "app_id": self.config.app_id,
-                    "app_secret": self.config.app_secret,
+                    "Authorization": f"Bearer {app_token}",
                 }
             )
-            
-            if response.status_code != 200:
-                raise ValueError(f"获取 access_token 失败: {response.text}")
-            
             data = response.json()
-            if data.get("code") != 0:
-                raise ValueError(f"飞书 API 错误: {data.get('msg')}")
             
-            return data.get("data", {})
+            if data.get("code") != 0:
+                raise Exception(f"兑换 token 失败: {data.get('msg')}, code: {data.get('code')}")
+            
+            return {
+                "access_token": data["data"]["access_token"],
+                "token_type": data["data"]["token_type"],
+                "expires_in": data["data"]["expires_in"],
+                "refresh_token": data["data"].get("refresh_token"),
+                "scope": data["data"].get("scope"),
+            }
     
     async def get_user_info(self, access_token: str) -> FeishuUserInfo:
         """获取用户信息"""
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 self.USER_INFO_URL,
-                headers={"Authorization": f"Bearer {access_token}"}
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                }
             )
-            
-            if response.status_code != 200:
-                raise ValueError(f"获取用户信息失败: {response.text}")
-            
             data = response.json()
-            if data.get("code") != 0:
-                raise ValueError(f"飞书 API 错误: {data.get('msg')}")
             
-            user_data = data.get("data", {})
+            if data.get("code") != 0:
+                raise Exception(f"获取用户信息失败: {data.get('msg')}")
+            
+            user_data = data["data"]
             return FeishuUserInfo(
                 union_id=user_data.get("union_id", ""),
                 open_id=user_data.get("open_id", ""),
                 name=user_data.get("name", ""),
                 email=user_data.get("email", ""),
                 avatar_url=user_data.get("avatar_url", ""),
-                department=user_data.get("department", ""),
+                tenant_key=user_data.get("tenant_key", ""),
             )
     
-    def check_access_control(self, user_info: FeishuUserInfo) -> tuple[bool, str]:
-        """检查用户访问权限"""
-        if not self.config:
-            return False, "SSO 未配置"
-        
-        # 检查部门
-        if self.config.allowed_departments:
-            departments = json.loads(self.config.allowed_departments)
-            if user_info.department and user_info.department not in departments:
-                return False, f"不在允许的部门范围内"
-        
-        # 检查邮箱
-        if self.config.allowed_emails and user_info.email:
-            email_suffixes = json.loads(self.config.allowed_emails)
-            email_lower = user_info.email.lower()
-            if not any(email_lower.endswith(suffix.lower()) for suffix in email_suffixes):
-                return False, f"邮箱不在允许范围内"
-        
-        return True, "允许访问"
-    
-    def get_or_create_user(self, user_info: FeishuUserInfo) -> AppUser:
-        """获取或创建用户"""
-        # 查找现有用户
+    def create_or_update_user(self, user_info: FeishuUserInfo) -> AppUser:
+        """创建或更新用户"""
         user = self.db.query(AppUser).filter(
             AppUser.feishu_union_id == user_info.union_id
         ).first()
         
-        if user:
+        if not user:
+            # 检查是否有相同 email 的用户
+            user = self.db.query(AppUser).filter(
+                AppUser.username == user_info.email
+            ).first()
+        
+        if not user:
+            # 创建新用户
+            user = AppUser(
+                username=user_info.email or user_info.union_id,
+                display_name=user_info.name,
+                feishu_union_id=user_info.union_id,
+                feishu_open_id=user_info.open_id,
+                feishu_name=user_info.name,
+                feishu_avatar=user_info.avatar_url,
+                feishu_email=user_info.email,
+                sso_enabled=True,
+                is_admin=False,
+            )
+            self.db.add(user)
+        else:
             # 更新用户信息
+            user.feishu_union_id = user_info.union_id
             user.feishu_open_id = user_info.open_id
             user.feishu_name = user_info.name
             user.feishu_avatar = user_info.avatar_url
-            user.feishu_department = user_info.department
-            user.feishu_email = user_info.email
-            user.last_login_at = datetime.utcnow()
-            user.login_count += 1
-            self.db.commit()
-            return user
+            if not user.feishu_email:
+                user.feishu_email = user_info.email
         
-        # 自动创建新用户
-        if not self.config or not self.config.auto_create_user:
-            raise ValueError("用户不存在且未开启自动创建")
+        user.last_login_at = datetime.utcnow()
+        user.login_count = (user.login_count or 0) + 1
         
-        from uuid import uuid4
-        user = AppUser(
-            id=str(uuid4()),
-            username=user_info.union_id,  # 使用 union_id 作为用户名
-            display_name=user_info.name,
-            password_hash=None,  # SSO 用户无密码
-            feishu_user_id=user_info.union_id,
-            feishu_open_id=user_info.open_id,
-            feishu_union_id=user_info.union_id,
-            feishu_name=user_info.name,
-            feishu_avatar=user_info.avatar_url,
-            feishu_department=user_info.department,
-            feishu_email=user_info.email,
-            sso_enabled=True,
-            last_login_at=datetime.utcnow(),
-            login_count=1,
-        )
-        
-        self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
+        
         return user
-
-
-# 会话状态存储 (生产环境应使用 Redis)
-_session_states: dict[str, dict] = {}
-
-
-class SessionStateManager:
-    """会话状态管理器"""
     
-    @staticmethod
-    def store_state(state: str, redirect_uri: str, expires_in: int = 600) -> None:
-        """存储 state"""
-        _session_states[state] = {
-            "redirect_uri": redirect_uri,
-            "expires_at": datetime.utcnow() + timedelta(seconds=expires_in),
-        }
-    
-    @staticmethod
-    def get_and_delete_state(state: str) -> Optional[str]:
-        """获取并删除 state (一次性)"""
-        if state not in _session_states:
-            return None
+    def check_user_access(self, user_info: FeishuUserInfo) -> bool:
+        """检查用户是否有访问权限"""
+        if not self.config:
+            return True  # 没有配置则允许访问
         
-        session_data = _session_states.pop(state)
-        if datetime.utcnow() > session_data["expires_at"]:
-            return None
+        # 如果禁用了自动创建，则只允许已存在的用户
+        if not self.config.auto_create_user:
+            existing_user = self.db.query(AppUser).filter(
+                AppUser.feishu_union_id == user_info.union_id
+            ).first()
+            return existing_user is not None
         
-        return session_data["redirect_uri"]
-    
-    @staticmethod
-    def cleanup_expired() -> None:
-        """清理过期 state"""
-        now = datetime.utcnow()
-        expired = [s for s, d in _session_states.items() if now > d["expires_at"]]
-        for s in expired:
-            _session_states.pop(s, None)
+        return True  # 允许自动创建用户

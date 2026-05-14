@@ -62,6 +62,10 @@ export default defineConfig(({ mode }) => {
                 changeOrigin: true,
                 ws: true,
             },
+            "/auth": {
+                target: devProxyTarget,
+                changeOrigin: true,
+            },
         },
     },
     };
