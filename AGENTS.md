@@ -36,15 +36,19 @@ ClawSwarm 是一个开源的编排系统，将群体智能引入 OpenClaw 中的
 - **前端构建**: `bash scripts/coze-preview-build.sh` → pnpm install
 - **部署构建**: `bash web-client/scripts/coze-deploy-build.sh` → 静态产物
 - **部署运行**: `bash web-client/scripts/coze-deploy-run.sh` → vite preview
+- **后端服务**: `cd scheduler-server && python3 run_dev.py` → 18080 端口
 
 ## 运行与预览
 
 ### 开发预览
 ```bash
-# 安装依赖
+# 安装前端依赖
 bash scripts/coze-preview-build.sh
 
-# 启动预览服务
+# 启动后端服务（需要先安装依赖：pip install -r requirements.txt）
+cd scheduler-server && python3 run_dev.py &
+
+# 启动前端预览服务
 bash scripts/coze-preview-run.sh
 # 访问 http://localhost:5000
 ```
