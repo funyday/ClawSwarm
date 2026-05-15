@@ -32,10 +32,11 @@ services:
       # 应用配置
       CLAWSWARM_BASE_URL: ${CLAWSWARM_BASE_URL:-http://localhost}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
-      # Headscale/Tailscale 配置
-      HEADSCALE_URL: ${HEADSCALE_URL:-}
-      HEADSCALE_API_KEY: ${HEADSCALE_API_KEY:-}
-      TAILSCALE_AUTH_KEY: ${TAILSCALE_AUTH_KEY:-}
+      # 默认管理员账号
+      DEFAULT_LOGIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      DEFAULT_LOGIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      # 飞书 SSO 配置 (可选)
+      FEISHU_SSO_ENABLED: ${FEISHU_SSO_ENABLED:-false}
       # 日志配置
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:

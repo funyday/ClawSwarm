@@ -44,8 +44,8 @@
         </el-button>
       </el-form>
 
-      <!-- 飞书登录 (仅公网部署可用) -->
-      <div v-if="loginType === 'feishu'" class="feishu-section">
+      <!-- 飞书登录 (仅公网部署且启用时) -->
+      <div v-if="feishuEnabled && loginType === 'feishu'" class="feishu-section">
         <el-button
           type="primary"
           size="large"
@@ -58,12 +58,12 @@
         </el-button>
       </div>
 
-      <!-- 切换登录方式 -->
-      <div class="login-divider">
+      <!-- 切换登录方式 (仅飞书启用时显示) -->
+      <div v-if="feishuEnabled" class="login-divider">
         <span class="login-divider__text">{{ t("login.or") }}</span>
       </div>
 
-      <div class="login-type-toggle">
+      <div v-if="feishuEnabled" class="login-type-toggle">
         <el-button
           v-if="loginType === 'local'"
           class="toggle-btn"
@@ -81,7 +81,7 @@
       </div>
 
       <!-- 飞书登录提示 -->
-      <p v-if="loginType === 'feishu'" class="login-hint">
+      <p v-if="feishuEnabled && loginType === 'feishu'" class="login-hint">
         {{ t("feishu.publicOnlyHint") }}
       </p>
     </div>
@@ -102,6 +102,9 @@ const authStore = useAuthStore();
 const loginType = ref<"local" | "feishu">("local");
 const loading = ref(false);
 const formRef = ref();
+
+// 是否启用飞书登录（可从环境变量注入，默认为 false）
+const feishuEnabled = import.meta.env.VITE_FEISHU_ENABLED === "true";
 
 const form = reactive({
     username: "",

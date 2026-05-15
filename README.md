@@ -69,28 +69,55 @@ vim .env
 # 数据库密码
 DB_PASSWORD=your_secure_password
 
-# 应用 URL（用于飞书回调，必须是公网可访问的地址）
-CLAWSWARM_BASE_URL=https://your-domain.com
+# 应用 URL
+# - 公网部署：需要设置为公网可访问的地址（用于飞书回调）
+# - 内网部署：设置为 http://服务器IP
+CLAWSWARM_BASE_URL=http://服务器IP
 
-# 加密密钥（生产环境必须修改）
+# 加密密钥（生产环境建议修改）
 SECRET_KEY=change-me-to-random-string
+
+# 默认管理员账号
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+
+# 飞书 SSO 登录（内网部署设为 false）
+FEISHU_SSO_ENABLED=false
 ```
 
-#### 3. 配置飞书（可选）
+#### 3. 内网部署（无需公网）
+
+内网部署时，飞书 SSO 登录不可用，但可以使用本地账号登录：
+
+```bash
+# .env 配置
+CLAWSWARM_BASE_URL=http://192.168.1.100
+FEISHU_SSO_ENABLED=false
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+```
+
+首次登录使用默认账号：`admin` / `admin123`
+
+#### 4. 配置飞书 Bot（可选）
 
 如果你需要使用飞书 Bot 功能：
 
 ```bash
-cp .env.example .env.tailscale
-# 编辑飞书相关配置
+# 编辑 .env
+vim .env
+
+# 配置飞书应用信息
+FEISHU_APP_ID=cli_xxxxxxxxxxxxxxxx
+FEISHU_APP_SECRET=your_feishu_app_secret
 ```
 
 在飞书开放平台创建应用后，配置重定向 URL 为：
 ```
-https://your-domain.com/auth/feishu/callback
+http://服务器IP/auth/feishu/callback
 ```
 
-#### 4. 配置 Tailscale/Headscale（可选）
+#### 5. 配置 Tailscale/Headscale（可选）
 
 支持通过私有网络连接内网 OpenClaw 实例。
 
@@ -111,7 +138,7 @@ HEADSCALE_API_KEY=your_headscale_api_key
 
 然后在 `docker-compose.yml` 中取消注释 tailscale 服务。
 
-#### 5. 部署
+#### 6. 部署
 
 ```bash
 # 构建并启动所有服务
@@ -124,9 +151,13 @@ docker-compose ps
 bash scripts/logs.sh
 ```
 
-#### 6. 访问
+#### 7. 访问
 
-打开浏览器访问 `http://your-server-ip`
+打开浏览器访问 `http://服务器IP`
+
+首次登录：
+- 用户名：`admin`
+- 密码：`admin123`
 
 ## 目录结构
 
