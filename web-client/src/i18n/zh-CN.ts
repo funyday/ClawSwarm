@@ -372,7 +372,21 @@ export const zhCN = {
     loginSubtitle: "使用飞书账号安全登录",
     loginWithFeishu: "使用飞书登录",
     loginAgreement: "登录即表示同意《用户协议》和《隐私政策》",
-    bot: {
+    publicOnlyHint: "飞书登录仅支持公网部署，内网部署请使用本地账号登录",
+  },
+  login: {
+    title: "欢迎使用 ClawSwarm",
+    subtitle: "请登录以继续",
+    username: "用户名",
+    password: "密码",
+    submit: "登录",
+    success: "登录成功",
+    failed: "登录失败，请检查用户名和密码",
+    or: "或",
+    switchToFeishu: "使用飞书登录",
+    switchToLocal: "使用本地账号登录",
+  },
+  feishuBot: {
       name: "Bot 名称",
       namePlaceholder: "例如：开发助手 Bot",
       appId: "App ID",
